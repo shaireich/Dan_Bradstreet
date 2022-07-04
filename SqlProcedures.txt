@@ -1,0 +1,78 @@
+-----------Procedure 1-------------
+USE [DanB]
+GO
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+ALTER PROCEDURE [dbo].[One]
+  @Year int
+
+AS
+BEGIN
+  SET NOCOUNT ON;
+
+select top 1 a1.AGENT_CODE
+from 
+(select AGENTS.AGENT_CODE,sum(ORDERS.ADVANCE_AMOUNT) as sum_advance
+from AGENTS inner join ORDERS on AGENTS.AGENT_CODE = ORDERS.AGENT_CODE
+where (month(ORDERS.ORD_DATE) = 1 or month(ORDERS.ORD_DATE) = 2 or month(ORDERS.ORD_DATE) = 3) and year(ORDERS.ORD_DATE) = @Year
+group by AGENTS.AGENT_CODE) as a1
+order by a1.sum_advance desc
+
+END
+-----------Procedure 2-------------
+USE [DanB]
+GO
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER PROCEDURE [dbo].[Two]
+  @Agents varchar(max),
+  @Num int
+
+AS
+BEGIN
+  SET NOCOUNT ON;
+
+  select DanB.dbo.ORDERS.AGENT_CODE,ORDERS.ORD_DATE
+from STRING_SPLIT(@Agents, ',') inner join DanB.dbo.ORDERS on DanB.dbo.ORDERS.AGENT_CODE = value
+where DanB.dbo.ORDERS.ORD_DATE in (select a2.ORD_DATE
+                                    from
+                                    (select ROW_NUMBER() OVER(ORDER BY a1.AGENT_CODE,a1.ORD_DATE ASC) as row_num,a1.ORD_DATE
+                                    from DanB.dbo.ORDERS as a1
+									where a1.AGENT_CODE = DanB.dbo.ORDERS.AGENT_CODE) as a2 where a2.row_num = @Num)
+order by DanB.dbo.ORDERS.AGENT_CODE
+  
+END
+-----------Procedure 3-------------
+USE [DanB]
+GO
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER PROCEDURE [dbo].[Three]
+  @Year int,
+  @Num int
+
+AS
+BEGIN
+  SET NOCOUNT ON;
+
+select AGENTS.AGENT_CODE,AGENTS.AGENT_NAME,AGENTS.PHONE_NO
+from AGENTS inner join ORDERS on AGENTS.AGENT_CODE = ORDERS.AGENT_CODE
+where year(ORDERS.ORD_DATE) = @Year
+group by AGENTS.AGENT_CODE,AGENTS.AGENT_NAME,AGENTS.PHONE_NO
+having count(AGENTS.AGENT_CODE) >= @Num;
+
+END
+
+
